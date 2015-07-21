@@ -23,7 +23,7 @@ Package.onUse(function(api) {
     api.use([
         'sanjo:meteor-files-helpers@1.1.0_6',
         'package-version-parser@3.0.3',
-        'jsx'
+        'jsx@0.1.3'
     ], 'server')
 
     api.addFiles('build-tools.jsx', 'server');

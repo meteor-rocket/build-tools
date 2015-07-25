@@ -4,6 +4,7 @@ var fs                 = Npm.require('fs')
 var os                 = Npm.require('os')
 
 // npm modules
+var rndm               = Npm.require('rndm')
 var _                  = Npm.require('lodash')
 var glob               = Npm.require('glob')
 var userHome           = Npm.require('user-home')
@@ -674,34 +675,139 @@ function toLocalPackageName(packageName) {
     return nameParts[nameParts.length - 1]
 }
 
+// Borrowed from https://github.com/meteor/meteor/blob/ed9310f55b60e6baa0ce7e4670ffa55e403bcb96/tools/files.js#L51
+// with slight modifications.
+//
+// given a predicate function and a starting path, traverse upwards
+// from the path until we find a path that satisfies the predicate.
+//
+// returns either the path to the lowest level directory that passed
+// the test or null for none found. if starting path isn't given, use
+// cwd.
+function findUpwards(predicate, startPath) {
+  var testDir = startPath || process.cwd();
+  while (testDir) {
+    if (predicate(testDir)) {
+      break;
+    }
+    var newDir = path.dirname(testDir);
+    if (newDir === testDir) {
+      testDir = null;
+    } else {
+      testDir = newDir;
+    }
+  }
+  if (!testDir)
+    return null;
+
+  return testDir;
+}
+
+/**
+ * Get the path to the meteor executable that we're running in.
+ *
+ * @return {string} The path to the executable.
+ */
+function getMeteorPath() {
+
+    let nodePath = process.execPath || process.argv[0] || process.env.OLDPWD || process.env.NODE_PATH
+
+    function isMeteorDirectory(testPath) {
+        try { return fs.statSync(path.resolve(testPath, 'meteor')).isFile() }
+        catch (error) { return false }
+    }
+
+    return findUpwards(isMeteorDirectory, nodePath)
+}
+
+/**
+ * Get the directory from which paths passed to Npm.reqire are
+ * rooted (determined internally by Meteor and out of our control).
+ * For example, if Npm.require is rooted to `/path/to/foo`, then
+ * `Npm.require('../some/thing')` will actually do
+ * `require('/path/to/foo/../some/thing')` internally. This
+ * function will return `/path/to/foo` in this case.
+ *
+ * @return {string} The path that Npm.require is rooted to.
+ */
+function getMeteorNpmRequireRoot() {
+    let randomString = rndm(24)
+    try {
+        // "./" is needed in order to trigger an error about a
+        // package not existing, otherwise Npm.require mysteriously
+        // returns undefined if the package doesn't exist. For example:
+        //
+        // Npm.require('asdflkjahsdf') // no error, returns undefined.
+        // Npm.require('./asdflkjahsdf') // error
+        Npm.require('.'+path.sep+randomString) // require a package not likely to exist.
+        return getMeteorNpmRequireRoot() // in the highly unlikely event the random package exists. Get a littery ticket if this happens.
+    }
+    catch (error) {
+        // error.toString() currently looks like this:
+        // Error: Cannot find module '/path/to/node_modules/packageName'
+        // The root is '/path/to/node_modules'.
+        let attemptedPackagePath = error.toString().split("'")[1] // /path/to/node_modules/packageName
+        let rootPath = getPath(attemptedPackagePath) // /path/to/node_modules
+        return rootPath
+    }
+}
+
+/**
+ * Require files from the directory where the Meteor executable is located.
+ *
+ * @param {string} moduleName The path to a file where Meteor is located.
+ * @return {Object} The module.exports of the file.
+ */
+function requireFromMeteor(moduleName) {
+    let meteorPath = getMeteorPath()
+    let rootNpmPath = getMeteorNpmRequireRoot()
+    let commonPath = getCommonAncestorPath(meteorPath, rootNpmPath)
+
+    return Npm.require(
+        ''+
+        path.relative(rootNpmPath, commonPath) +
+        path.sep +
+        path.relative(commonPath, meteorPath) +
+        path.sep +
+        moduleName
+    )
+}
+
 BuildTools = {
-    PLATFORM_NAMES: PLATFORM_NAMES,
-    PACKAGE_DIRS: PACKAGE_DIRS,
-    USER_HOME: USER_HOME,
-    getAppPath: getAppPath,
-    getAppPackagesPath: getAppPackagesPath,
-    packageDirFromCompileStep: packageDirFromCompileStep,
-    getInstalledPackages: getInstalledPackages,
-    getLines: getLines,
-    isAppBuild: isAppBuild,
-    getDependentsOf: getDependentsOf,
-    getLocalPackagePath: getLocalPackagePath,
-    isLocalPackage: isLocalPackage,
-    getIsopackPath: getIsopackPath,
-    getInfoFromPackageDotJs: getInfoFromPackageDotJs,
-    isoOrUni: isoOrUni,
-    getDependenciesFromIsopack: getDependenciesFromIsopack,
-    getAddedFilesFromIsopack: getAddedFilesFromIsopack,
-    getNpmDependenciesFromIsopack: getNpmDependenciesFromIsopack,
-    getInfoFromIsopack: getInfoFromIsopack,
-    getInstalledVersion: getInstalledVersion,
-    getPackageInfo: getPackageInfo,
-    getAppId: getAppId,
-    toIsopackName: toIsopackName,
-    toPackageName: toPackageName,
-    toLocalPackageName: toLocalPackageName,
-    getFileName: getFileName,
-    getPath: getPath
+    PLATFORM_NAMES,
+    PACKAGE_DIRS,
+    USER_HOME,
+    FILENAME_REGEX,
+    getAppPath,
+    getAppPackagesPath,
+    packageDirFromCompileStep,
+    getInstalledPackages,
+    getLines,
+    isAppBuild,
+    getDependentsOf,
+    getLocalPackagePath,
+    isLocalPackage,
+    getIsopackPath,
+    getInfoFromPackageDotJs,
+    isoOrUni,
+    getDependenciesFromIsopack,
+    getAddedFilesFromIsopack,
+    getNpmDependenciesFromIsopack,
+    getInfoFromIsopack,
+    getInstalledVersion,
+    getPackageInfo,
+    getAppId,
+    toIsopackName,
+    toPackageName,
+    toLocalPackageName,
+    getFileName,
+    getPath,
+    findUpwards,
+    getMeteorPath,
+    indexOfObjectWithKeyValue,
+    getMeteorNpmRequireRoot,
+    getCommonAncestorPath,
+    requireFromMeteor
 }
 
 // TODO: move everything below this to army-knife on npm.
@@ -736,4 +842,73 @@ function getFileName(filePath) {
 function getPath(filePath) {
     let result = filePath.replace(getFileName(filePath), '')
     return result.replace(/\/$/, '') // remove trailing slash if any.
+}
+
+/**
+ * Get the index of the object in an array that has the specified key value pair.
+ *
+ * @param {Array.Object} array An array containing Objects.
+ * @param {string} key The key to check in each Object.
+ * @param {?} value The value to check the key for (absolute equality).
+ * @return {number} The integer index of the first Object found that has the key value pair.
+ *
+ * TODO: Is there already something like this in lodash or underscore? If not, move to army-knife.
+ */
+function indexOfObjectWithKeyValue(array, key, value) {
+    var index = -1
+    for (var i=0; i<array.length; i+=1) {
+        if (array[i][key] && array[i][key] === value) {
+            index = i
+            break
+        }
+    }
+    return index
+}
+
+/**
+ * Get the common ancestor path of a set of paths.
+ *
+ * @param {Array.string} ...inputPaths The paths from which to find the ancestor path.
+ * @return {string|null} The ancestor path, null if one doesn't exist.
+ */
+function getCommonAncestorPath(...inputPaths) {
+    let commonPath = null
+
+    // for each inputPath, get an array of the path parts split by
+    // the platform separator (f.e. '/path/to/foo' becomes ['',
+    // 'path', 'to', 'foo']
+    let ancestorArrays = _.map(inputPaths, (inputPath) => {
+        return inputPath.split(path.sep)
+    })
+
+    // check that directory names match, starting at the root of each path.
+    let index = 0
+    while (true) {
+        let currentDirectory = ancestorArrays[0][index]
+
+        // check if we've reached the end of at least one path, in which case there's no common ancestor so break the loop.
+        let indexOutOfBounds = !_.every(ancestorArrays, (ancestorArray) => {
+            return typeof ancestorArray[index] !== 'undefined'
+        })
+
+        if (indexOutOfBounds) break
+
+        let directoryNameSet = _.map(ancestorArrays, (ancestorArray) => {
+            return ancestorArray[index]
+        })
+
+        let allNamesMatchAtCurrentLevel = _.every(directoryNameSet, (directoryName) => {
+            return directoryName === currentDirectory
+        })
+
+        // as soon as we find a level where the directory names diverge.
+        if (!allNamesMatchAtCurrentLevel) {
+            commonPath = ancestorArrays[0].slice(0, index).join(path.sep)
+            break
+        }
+
+        index += 1
+    }
+
+    return commonPath
 }

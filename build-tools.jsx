@@ -54,6 +54,8 @@ function getAppPackagesPath() {
 /**
  * Returns the path of the package in the given CompileStep.
  *
+ * Use this with the deprecated Package.registerSourceHandler API.
+ *
  * @param {CompileStep} compileStep The given CompileStep.
  * @return {string} The path to the package.
  */
@@ -322,6 +324,8 @@ function getInfoFromPackageDotJs(packageDotJsSource, packagePath) {
  * Given an isopack, get the JSON result from isopack.json if it exists, then
  * unipackage.json if it exists, otherwise null if neither exist.
  *
+ * NOTE: This is for isopack-1 isopacks.
+ *
  * @param {string} isopackPath The full path to an isopack.
  * @return {Object|null} The JSON.parsed result, or null if the files are not
  * found.
@@ -363,6 +367,8 @@ function isoOrUni(isopackPath) {
  * Get the dependencies from an isopack's os.json, web.browser.json,
  * and web.cordova.json files.
  *
+ * NOTE: This is for isopack-1 isopacks.
+ *
  * @param {string} isopackPath The full path to an isopack.
  * @return {Array.string} An array of package constraint strings being the
  * dependencies of the given isopack.
@@ -395,6 +401,8 @@ function getDependenciesFromIsopack(isopackPath) {
 /**
  * Get the a list of files that were added to a package (using api.addFiles)
  * from its isopack.
+ *
+ * NOTE: This is for isopack-1 isopacks.
  *
  * @param {string} isopackPath The full path to an isopack.
  * @return {Array.string} An array containing the full names of added files.
@@ -435,6 +443,8 @@ function getAddedFilesFromIsopack(isopackPath) {
 /**
  * Get a list of npm packages that the isopack depends on.
  *
+ * NOTE: This is for isopack-1 isopacks.
+ *
  * @param {string} isopackPath The full path to an isopack.
  * @return {Object} An object listing npm dependencies, just like what you'd
  * pass into Npm.depends.
@@ -472,6 +482,8 @@ function getNpmDependenciesFromIsopack(isopackPath) {
  * Get PackageInfo from an isopack (usually a package in the global
  * ~/.meteor/packages directory or application's .meteor/local/isopacks
  * directory).
+ *
+ * NOTE: This is for isopack-1 isopacks.
  *
  * @param {string} isopackPath The full path to an isopack.
  * @return {Object} A subset of the PackageInfo type that includes the `path` and
@@ -541,6 +553,8 @@ function getInstalledVersion(packageName) {
  * @return {PackageInfo|null} An object containing details about the specified
  * package, or null if the package is not found.
  *
+ * TODO: Handle isopack-2 isopacks.
+ *
  * TODO: Account for PACKAGE_DIRS environment variable. This function assumes
  * that local packages are in the default location in the `packages` folder of
  * the application, but this might not be the case if a different path is
@@ -549,7 +563,8 @@ function getInstalledVersion(packageName) {
  * TODO: If no local packages, local isopacks, or global isopacks are found,
  * get info from online but if no internet connection, return null.
  *
- * TODO: Also include files added in Package.onTest in the `files` property of the returned PackageInfo.
+ * TODO: Also include files added in Package.onTest in the `files` property of
+ * the returned PackageInfo.
  */
 function getPackageInfo(packageName, packageVersion) {
 

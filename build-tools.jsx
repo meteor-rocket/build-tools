@@ -675,49 +675,13 @@ function toLocalPackageName(packageName) {
     return nameParts[nameParts.length - 1]
 }
 
-// Borrowed from https://github.com/meteor/meteor/blob/ed9310f55b60e6baa0ce7e4670ffa55e403bcb96/tools/files.js#L51
-// with slight modifications.
-//
-// given a predicate function and a starting path, traverse upwards
-// from the path until we find a path that satisfies the predicate.
-//
-// returns either the path to the lowest level directory that passed
-// the test or null for none found. if starting path isn't given, use
-// cwd.
-function findUpwards(predicate, startPath) {
-  var testDir = startPath || process.cwd();
-  while (testDir) {
-    if (predicate(testDir)) {
-      break;
-    }
-    var newDir = path.dirname(testDir);
-    if (newDir === testDir) {
-      testDir = null;
-    } else {
-      testDir = newDir;
-    }
-  }
-  if (!testDir)
-    return null;
-
-  return testDir;
-}
-
 /**
  * Get the path to the meteor executable that we're running in.
  *
  * @return {string} The path to the executable.
  */
 function getMeteorPath() {
-
-    let nodePath = process.execPath || process.argv[0] || process.env.OLDPWD || process.env.NODE_PATH
-
-    function isMeteorDirectory(testPath) {
-        try { return fs.statSync(path.resolve(testPath, 'meteor')).isFile() }
-        catch (error) { return false }
-    }
-
-    return findUpwards(isMeteorDirectory, nodePath)
+    return MeteorFilesHelpers.getMeteorToolPath()
 }
 
 /**
@@ -757,6 +721,8 @@ function getMeteorNpmRequireRoot() {
  *
  * @param {string} moduleName The path to a file where Meteor is located.
  * @return {Object} The module.exports of the file.
+ *
+ * TODO: Test this while not using Meteor from a git checkout.
  */
 function requireFromMeteor(moduleName) {
     let meteorPath = getMeteorPath()
@@ -802,7 +768,6 @@ BuildTools = {
     toLocalPackageName,
     getFileName,
     getPath,
-    findUpwards,
     getMeteorPath,
     indexOfObjectWithKeyValue,
     getMeteorNpmRequireRoot,

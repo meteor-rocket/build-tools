@@ -1,6 +1,6 @@
 Package.describe({
     name: 'rocket:build-tools',
-    version: '1.1.0',
+    version: '2.1.0',
     // Brief, one-line summary of the package.
     summary: 'Helpers for build plugins.',
     // URL to the Git repository containing the source code for this package.
@@ -22,7 +22,7 @@ Package.onUse(function(api) {
     api.versionsFrom('1.1.0.2');
 
     api.use([
-        'sanjo:meteor-files-helpers@1.1.0_6',
+        'sanjo:meteor-files-helpers@1.1.0_7',
         'package-version-parser@3.0.3',
         'jsx@0.1.3'
     ], 'server')

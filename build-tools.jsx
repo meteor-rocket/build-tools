@@ -351,11 +351,17 @@ function isoOrUni(isopackPath) {
         // XXX: Is the top-most key in isopack.json always "isopack-1"? If
         // not, handle the possiblity of a different key name.
         if (isoUniPath.match(/isopack\.json/)) {
-            if (typeof result['isopack-1'] !== 'undefined')
-                result = result['isopack-1']
-            else
-                // XXX: If it happens, let's catch it. Someone will complain and we'll fix it. x)
-                throw new Error('isopack-1 is undefined. Please report this issue. Thanks!')
+
+            let isopackVersion = 0
+            while (true) {
+                if (_.has(result, 'isopack-'+isopackVersion)) {
+                    console.log('Found isopack version ', isopackVersion)
+                    result = result['isopack-'+isopackVersion]
+                    break
+                }
+                isopackVersion += 1
+            }
+
         }
 
         return result

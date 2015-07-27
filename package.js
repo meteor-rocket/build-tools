@@ -1,6 +1,6 @@
 Package.describe({
     name: 'rocket:build-tools',
-    version: '2.1.3',
+    version: '2.1.4',
     // Brief, one-line summary of the package.
     summary: 'Helpers for build plugins.',
     // URL to the Git repository containing the source code for this package.
